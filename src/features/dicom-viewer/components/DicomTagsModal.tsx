@@ -54,6 +54,7 @@ const COMMON_TAGS: Record<string, string> = {
 export function DicomTagsModal({ imageId, onClose }: DicomTagsModalProps) {
   const [tags, setTags] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -117,11 +118,13 @@ export function DicomTagsModal({ imageId, onClose }: DicomTagsModalProps) {
   fetchTags();
 }, [imageId]);
 
-  const filteredTags = tags.filter(t => 
-    t.name.toLowerCase().includes(search.toLowerCase()) || 
-    t.tag.toLowerCase().includes(search.toLowerCase()) ||
-    t.value.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredTags = tags.filter(t => {
+    const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) || 
+                          t.tag.toLowerCase().includes(search.toLowerCase()) ||
+                          t.value.toLowerCase().includes(search.toLowerCase());
+    const isEssential = t.name !== 'Unknown';
+    return matchesSearch && (showAll || isEssential);
+  });
 
   return (
     <div style={{
@@ -152,8 +155,8 @@ export function DicomTagsModal({ imageId, onClose }: DicomTagsModalProps) {
           </button>
         </div>
 
-        <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ position: 'relative' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
             <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
             <input 
               type="text" 
@@ -167,6 +170,15 @@ export function DicomTagsModal({ imageId, onClose }: DicomTagsModalProps) {
               }}
             />
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', cursor: 'pointer' }}>
+            <input 
+              type="checkbox" 
+              checked={showAll} 
+              onChange={e => setShowAll(e.target.checked)} 
+              style={{ accentColor: '#06b6d4' }}
+            />
+            Show All Tags
+          </label>
         </div>
 
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
