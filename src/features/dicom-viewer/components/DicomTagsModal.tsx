@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
+import dicomParser from 'dicom-parser';
 import { X, Search } from 'lucide-react';
 
 interface DicomTagsModalProps {
@@ -55,10 +56,24 @@ export function DicomTagsModal({ imageId, onClose }: DicomTagsModalProps) {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    try {
-      const dataSet = cornerstoneDICOMImageLoader.wadouri.dataSetCacheManager.get(imageId.replace('wadouri:', ''));
-      if (dataSet && dataSet.elements) {
-        const extracted: any[] = [];
+    const fetchTags = async () => {
+      try {
+        let dataSet: any = null;
+        
+        if (imageId.startsWith('dicomfile:')) {
+          const fileId = parseInt(imageId.replace('dicomfile:', ''), 10);
+          const file = cornerstoneDICOMImageLoader.wadouri.fileManager.get(fileId as any);
+          if (file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const byteArray = new Uint8Array(arrayBuffer);
+            dataSet = dicomParser.parseDicom(byteArray);
+          }
+        } else {
+          dataSet = cornerstoneDICOMImageLoader.wadouri.dataSetCacheManager.get(imageId.replace('wadouri:', ''));
+        }
+
+        if (dataSet && dataSet.elements) {
+          const extracted: any[] = [];
         
         Object.keys(dataSet.elements).forEach(key => {
           const element = dataSet.elements[key];
@@ -97,7 +112,10 @@ export function DicomTagsModal({ imageId, onClose }: DicomTagsModalProps) {
     } catch (err) {
       console.error('Error reading DICOM tags:', err);
     }
-  }, [imageId]);
+  };
+  
+  fetchTags();
+}, [imageId]);
 
   const filteredTags = tags.filter(t => 
     t.name.toLowerCase().includes(search.toLowerCase()) || 
