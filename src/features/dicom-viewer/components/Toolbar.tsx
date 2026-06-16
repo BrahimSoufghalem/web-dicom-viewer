@@ -1,9 +1,10 @@
 import { getRenderingEngine } from '@cornerstonejs/core';
 import { useViewerStore } from '../../../store/useViewerStore';
 import { useLanguageStore } from '../../../store/useLanguageStore';
-import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, Contrast, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown } from 'lucide-react';
+import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info } from 'lucide-react';
 import { getMprIds } from '../utils/mprSetup';
 import { useState } from 'react';
+import { DicomTagsModal } from './DicomTagsModal';
 
 export function Toolbar() {
   const { 
@@ -20,6 +21,7 @@ export function Toolbar() {
   
   const { t } = useLanguageStore();
   const [showPresets, setShowPresets] = useState(false);
+  const [showTagsModal, setShowTagsModal] = useState(false);
 
   const activePanel = panels.find(p => p.id === activePanelId);
   const isPlaying = activePanel?.isPlaying || false;
@@ -251,6 +253,14 @@ export function Toolbar() {
           <Undo2 size={18} />
           <span className="tooltip">{t('toolbar.reset')}</span>
         </button>
+        <button 
+          className={`tool-btn ${showTagsModal ? 'active' : ''}`} 
+          onClick={() => setShowTagsModal(true)}
+          style={showTagsModal ? { color: '#ffffff', background: 'rgba(255,255,255,0.15)' } : {}}
+        >
+          <Info size={18} />
+          <span className="tooltip">DICOM Tags</span>
+        </button>
       </div>
 
       <div className="tool-group" style={{ opacity: activePanelId ? 1 : 0.5, pointerEvents: activePanelId ? 'auto' : 'none' }}>
@@ -322,6 +332,13 @@ export function Toolbar() {
           </div>
         )}
       </div>
+
+      {showTagsModal && imageIds.length > 0 && (
+        <DicomTagsModal 
+          imageId={imageIds[activePanel?.currentImageIndex || 0]} 
+          onClose={() => setShowTagsModal(false)} 
+        />
+      )}
     </>
   );
 }

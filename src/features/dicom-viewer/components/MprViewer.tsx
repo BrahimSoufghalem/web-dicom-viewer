@@ -176,7 +176,7 @@ export function MprViewer({ panelId }: MprViewerProps) {
     const checkDomAndInit = () => {
       const e = axialRef.current;
       let isInitializing = false;
-      let resizeTimer: any;
+
       
       if (e) {
         resizeObserver = new ResizeObserver((entries) => {

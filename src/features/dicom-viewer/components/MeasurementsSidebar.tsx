@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { useViewerStore } from '../../../store/useViewerStore';
-import { Trash2, Ruler, Square, Circle, PenTool, Activity, Crosshair, Target, Type, Edit2, LayoutList, Download, Hexagon, CircleDashed, Compass, Droplet, ArrowRightLeft } from 'lucide-react';
+import { Trash2, Ruler, Square, Activity, Target, Type, Edit2, LayoutList, Hexagon, CircleDashed, Compass, Droplet, ArrowRightLeft } from 'lucide-react';
 import type { Measurement } from '../hooks/useMeasurements';
 
 const getToolStyleClass = (toolName: string) => {
@@ -96,7 +96,7 @@ interface MeasurementsSidebarProps {
 export function MeasurementsSidebar({ measurements, removeMeasurement, jumpToMeasurement, updateMeasurementLabel }: MeasurementsSidebarProps) {
   const { t } = useLanguageStore();
   const seriesList = useViewerStore(state => state.seriesList);
-  const activePanelId = useViewerStore(state => state.activePanelId);
+
   const panels = useViewerStore(state => state.panels);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -121,7 +121,7 @@ export function MeasurementsSidebar({ measurements, removeMeasurement, jumpToMea
 
   const renderItems = () => {
     let currentGroup = '';
-    const items: JSX.Element[] = [];
+    const items: React.ReactNode[] = [];
 
     const sortedMeasurements = [...measurements].sort((a, b) => {
       if (isGroupedByType) {
