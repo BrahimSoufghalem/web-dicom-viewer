@@ -40,7 +40,6 @@ const translations: Translations = {
   'viewer.loading': { en: 'Loading Images...', fr: 'Chargement des Images...' },
   'viewer.errorTitle': { en: 'Error Displaying Image', fr: 'Erreur d\'Affichage de l\'Image' },
   'viewer.slice': { en: 'Slice:', fr: 'Coupe :' },
-  'viewer.help': { en: 'Scroll to change slices, drag to change contrast, use tools to measure', fr: 'Faites défiler pour changer de coupe, glissez pour le contraste, utilisez les outils pour mesurer' },
 
   // MprViewer.tsx
   'mpr.loading': { en: 'Preparing 3D Volume...', fr: 'Préparation du Volume 3D...' },
@@ -86,6 +85,12 @@ const translations: Translations = {
   'toolbar.pause': { en: 'Pause Playback', fr: 'Mettre en Pause' },
   'toolbar.speed': { en: 'Speed:', fr: 'Vitesse :' },
   'toolbar.presets': { en: 'Window Presets', fr: 'Préréglages de Fenêtre' },
+
+  // MeasurementsSidebar.tsx
+  'measurements.title': { en: 'Measurements', fr: 'Mesures' },
+  'measurements.empty': { en: 'No measurements yet. Use tools to measure length, angles, or ROI.', fr: 'Aucune mesure pour l\'instant. Utilisez les outils pour mesurer.' },
+  'measurements.slice': { en: 'Slice', fr: 'Coupe' },
+  'measurements.delete': { en: 'Delete Measurement', fr: 'Supprimer la mesure' },
 };
 
 interface LanguageState {

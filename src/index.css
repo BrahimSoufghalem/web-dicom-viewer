@@ -38,6 +38,7 @@
   /* Borders */
   --border-color: #333333;
   --border-accent: #3B82F6;
+  --border-glass: rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -186,6 +187,37 @@ button {
 .upload-button:hover {
   background: var(--border-color);
   border-color: var(--text-secondary);
+}
+
+/* --- Sidebars --- */
+.left-sidebar-wrapper, .right-sidebar-wrapper {
+  display: flex;
+  flex-shrink: 0;
+  height: 100%;
+}
+
+.left-sidebar-wrapper {
+  width: 320px;
+}
+
+.left-sidebar-wrapper.open {
+  margin-left: 0;
+}
+
+.left-sidebar-wrapper.closed {
+  margin-left: -320px;
+}
+
+.right-sidebar-wrapper {
+  width: 280px;
+}
+
+.right-sidebar-wrapper.open {
+  margin-right: 0;
+}
+
+.right-sidebar-wrapper.closed {
+  margin-right: -280px;
 }
 
 /* --- Sidebar --- */
@@ -349,7 +381,7 @@ button {
 .tool-btn .tooltip {
   display: none;
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg-panel);
@@ -361,7 +393,7 @@ button {
   pointer-events: none;
   z-index: 10000;
   border: 1px solid var(--border-color);
-  box-shadow: 0 -2px 4px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
 .tool-btn:hover .tooltip {
@@ -425,8 +457,21 @@ button {
   backdrop-filter: none;
 }
 
-.viewer-help-panel {
-  display: none; /* Removed for clinical minimalism */
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Custom Scrollbar */

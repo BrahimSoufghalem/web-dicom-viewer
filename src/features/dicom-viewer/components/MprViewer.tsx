@@ -4,7 +4,7 @@ import { useLanguageStore } from '../../../store/useLanguageStore';
 import { Box, AlertTriangle, Link, Unlink, Maximize2 } from 'lucide-react';
 import { buildVtkVolume, setupMprViewports, cleanupMprViewports, toggleMprSynchronizers, getMprIds, getMprEngineId } from '../utils/mprSetup';
 import { useDicomTools } from '../hooks/useDicomTools';
-import { Enums, getRenderingEngine } from '@cornerstonejs/core';
+import { Enums, getRenderingEngine, utilities as coreUtils } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
 function MprViewportPanel({ 
@@ -93,7 +93,7 @@ export function MprViewer({ panelId }: MprViewerProps) {
     seriesList,
     setPanelMprLinked,
     setPanelMprActiveViewport,
-    panels, playbackSpeed
+    panels, playbackSpeed, activePanelId
   } = useViewerStore();
   const { t } = useLanguageStore();
   
@@ -176,6 +176,7 @@ export function MprViewer({ panelId }: MprViewerProps) {
     const checkDomAndInit = () => {
       const e = axialRef.current;
       let isInitializing = false;
+      let resizeTimer: any;
       
       if (e) {
         resizeObserver = new ResizeObserver((entries) => {
@@ -198,9 +199,13 @@ export function MprViewer({ panelId }: MprViewerProps) {
                  });
                }
             } else {
-               // Engine and viewport exist, just resize
-               renderingEngine.resize(true);
-               renderingEngine.renderViewports(viewportIds);
+               // Instant resize using requestAnimationFrame for optimal sync with DOM
+               requestAnimationFrame(() => {
+                 if (isMounted && renderingEngine) {
+                   renderingEngine.resize(true);
+                   renderingEngine.renderViewports(viewportIds);
+                 }
+               });
             }
           }
         });
@@ -258,6 +263,28 @@ export function MprViewer({ panelId }: MprViewerProps) {
     };
   }, [isPlaying, playbackSpeed, mprActiveViewport, viewportIds]);
 
+  // Handle Keyboard Navigation for MPR Viewports
+  useEffect(() => {
+    if (panelId !== activePanelId || !imageIds || imageIds.length === 0) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const delta = e.key === 'ArrowDown' ? 1 : -1;
+        const renderingEngine = getRenderingEngine(getMprEngineId(panelId));
+        if (!renderingEngine) return;
+        
+        const viewport = renderingEngine.getViewport(mprActiveViewport);
+        if (!viewport) return;
+
+        coreUtils.scroll(viewport, { delta });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [panelId, activePanelId, mprActiveViewport, imageIds]);
+
   return (
     <div className="viewer-container" style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gridTemplateRows: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '2px', backgroundColor: 'var(--border-color)', borderRadius: '0px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
       
@@ -302,22 +329,100 @@ export function MprViewer({ panelId }: MprViewerProps) {
       />
 
       {/* 4th Cell: Patient Info */}
-      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-deep)', border: 'none', margin: '0', overflowY: 'auto' }}>
-        <h3 style={{ color: 'var(--text-primary)', fontSize: '1.1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontWeight: 600 }}>{t('mpr.patientInfo')}</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.name')}</span> <span style={{ fontWeight: 600 }}>{series?.patientName || 'N/A'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.id')}</span> <span>{series?.patientId || 'N/A'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.sex')}</span> <span>{series?.patientSex || 'N/A'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.age')}</span> <span>{series?.patientAge || 'N/A'}</span></div>
+      <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-deep)', border: 'none', margin: '0', overflowY: 'auto' }}>
+        
+        {/* Patient Block */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '4px', height: '16px', background: '#a89fea', borderRadius: '2px' }}></div>
+            <h3 style={{ color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, margin: 0 }}>{t('mpr.patientInfo')}</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.name')}</span>
+              <span style={{ fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{series?.patientName || 'N/A'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.id')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{series?.patientId || 'N/A'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.sex')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.patientSex || '-'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.age')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.patientAge || '-'}</span>
+            </div>
+          </div>
         </div>
 
-        <h3 style={{ color: 'var(--text-primary)', fontSize: '1.1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginTop: '0.5rem', fontWeight: 600 }}>{t('mpr.studyInfo')}</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.desc')}</span> <span>{series?.studyDescription || 'N/A'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.date')}</span> <span>{series?.studyDate || 'N/A'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.modality')}</span> <span>{series?.modality || 'N/A'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.thickness')}</span> <span>{series?.sliceThickness ? `${series.sliceThickness} mm` : 'N/A'}</span></div>
-          <div style={{ display: 'flex', flexDirection: 'column', marginTop: '0.25rem' }}><span style={{ color: 'var(--text-secondary)' }}>{t('mpr.institution')}</span> <span style={{ color: 'var(--text-muted)' }}>{series?.institutionName || series?.manufacturer || 'N/A'}</span></div>
+        {/* Study Block */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '4px', height: '16px', background: '#06b6d4', borderRadius: '2px' }}></div>
+            <h3 style={{ color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, margin: 0 }}>{t('mpr.studyInfo')}</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.desc')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.studyDescription || 'N/A'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.date')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.studyDate || 'N/A'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Modality</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.modality || 'N/A'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.institution')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>
+                {[series?.institutionName, series?.manufacturer, series?.manufacturerModel].filter(Boolean).join(' - ') || 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Series Block */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '4px', height: '16px', background: '#f4b94e', borderRadius: '2px' }}></div>
+            <h3 style={{ color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Series Information</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Description</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.seriesDescription || 'N/A'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Images</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.instanceCount || imageIds.length}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('mpr.thickness')}</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series?.sliceThickness ? `${series.sliceThickness} mm` : 'N/A'}</span>
+            </div>
+            {series?.pixelSpacing && (
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Pixel Spacing</span>
+                <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series.pixelSpacing} mm</span>
+              </div>
+            )}
+            {series?.kvp && (
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>kVp</span>
+                <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series.kvp} kVp</span>
+              </div>
+            )}
+            {series?.exposure && (
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '16px' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>mAs</span>
+                <span style={{ color: 'rgba(255,255,255,0.9)' }}>{series.exposure} mAs</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

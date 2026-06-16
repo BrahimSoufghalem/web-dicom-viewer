@@ -90,6 +90,7 @@ export function useCornerstone(imageIds: string[], currentImageIndex: number, vi
     // Safely wait for DOM layout using ResizeObserver
     const element = elementRef.current;
     let isInitializing = false;
+    let resizeTimer: any;
     
     if (element) {
       resizeObserver = new ResizeObserver((entries) => {
@@ -110,10 +111,14 @@ export function useCornerstone(imageIds: string[], currentImageIndex: number, vi
               });
             }
           } else {
-            // It already has a viewport, so just resize the engine
-            engine.resize(true);
-            const currentViewport = engine.getViewport(viewportId);
-            if (currentViewport) currentViewport.render();
+            // Instant resize using requestAnimationFrame for optimal sync with DOM
+            requestAnimationFrame(() => {
+              if (isMounted && engine) {
+                engine.resize(true);
+                const currentViewport = engine.getViewport(viewportId);
+                if (currentViewport) currentViewport.render();
+              }
+            });
           }
         }
       });

@@ -14,8 +14,12 @@ export interface DicomSeries {
   studyDate?: string;
   studyDescription?: string;
   manufacturer?: string;
+  manufacturerModel?: string;
   institutionName?: string;
   sliceThickness?: string;
+  pixelSpacing?: string;
+  kvp?: string;
+  exposure?: string;
 }
 
 export interface DicomStudy {

@@ -226,11 +226,6 @@ export function Viewer({ panelId }: ViewerProps) {
       <div className="viewer-overlay-card overlay-bottom-right">
         <span ref={wwWcRef}>WW: 256 / WC: 128</span>
       </div>
-      
-      <div className="viewer-help-panel">
-        <ShieldAlert size={14} style={{ color: 'var(--accent-cyan)' }} />
-        <span>{t('viewer.help')}</span>
-      </div>
     </div>
   );
 }

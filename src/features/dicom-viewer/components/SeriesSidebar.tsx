@@ -49,18 +49,62 @@ function Thumbnail({ imageId, isActive, onClick, description, count, modality }:
 
   return (
     <div 
-      className={`series-item ${isActive ? 'active' : ''}`}
+      className="series-item"
       onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '8px',
+        background: isActive ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+        border: `1px solid ${isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255,255,255,0.05)'}`,
+        borderRadius: '8px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        marginBottom: '6px',
+        boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.2)' : 'none'
+      }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
     >
-      <div className="series-thumb" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '40px', height: '40px', flexShrink: 0 }}>
+      <div 
+        className="series-thumb" 
+        style={{ 
+          display: 'flex', justifyContent: 'center', alignItems: 'center', 
+          width: '44px', height: '44px', flexShrink: 0, 
+          background: '#000', borderRadius: '4px', overflow: 'hidden',
+          border: `1px solid ${isActive ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}`
+        }}
+      >
         <canvas ref={canvasRef} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
       </div>
-      <div className="series-info">
-        <div className="series-desc" title={description || t('sidebar.unknownSeries')}>
+      <div className="series-info" style={{ marginLeft: '12px', flex: 1, overflow: 'hidden' }}>
+        <div 
+          className="series-desc" 
+          title={description || t('sidebar.unknownSeries')}
+          style={{ 
+            fontSize: '13px', 
+            fontWeight: isActive ? 600 : 500, 
+            color: isActive ? '#ffffff' : 'rgba(255,255,255,0.7)',
+            whiteSpace: 'nowrap', 
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis',
+            marginBottom: '4px'
+          }}
+        >
           {description || t('sidebar.unknownSeries')}
         </div>
-        <div className="series-count">
-          {count} {t('sidebar.images')} • {modality}
+        <div 
+          className="series-count"
+          style={{ 
+            fontSize: '11px', 
+            color: 'rgba(255,255,255,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', color: 'rgba(255,255,255,0.8)' }}>{modality}</span>
+          <span>{count} {t('sidebar.images')}</span>
         </div>
       </div>
     </div>
@@ -156,19 +200,27 @@ export function SeriesSidebar() {
             <div key={patient.patientId} className="accordion-patient">
               <div 
                 className="accordion-header patient-header"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', cursor: 'default', background: 'var(--bg-panel)', borderRadius: '4px', marginBottom: '4px' }}
+                style={{ 
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                  padding: '10px 12px', cursor: 'pointer', 
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', 
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '6px', marginBottom: '8px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+                onClick={() => togglePatient(patient.patientId)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1 }} onClick={() => togglePatient(patient.patientId)}>
-                  {isPatientExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                  <User size={16} style={{ color: 'var(--text-primary)' }} />
-                  <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{patient.patientName}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                  {isPatientExpanded ? <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.5)' }} /> : <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.5)' }} />}
+                  <User size={16} style={{ color: '#a89fea' }} />
+                  <span style={{ fontWeight: '600', fontSize: '13px', color: 'rgba(255,255,255,0.95)' }}>{patient.patientName}</span>
                 </div>
                 <button 
                   onClick={(e) => { e.stopPropagation(); removePatient(patient.patientId); }}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px', display: 'flex', borderRadius: '4px' }}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: '4px', display: 'flex', borderRadius: '4px', transition: 'color 0.2s' }}
                   title={t('sidebar.removePatient')}
-                  onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent-red)'}
-                  onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                  onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
+                  onMouseOut={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -183,11 +235,19 @@ export function SeriesSidebar() {
                         <div 
                           className="accordion-header study-header"
                           onClick={() => toggleStudy(study.studyInstanceUid)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', cursor: 'pointer', opacity: 0.9 }}
+                          style={{ 
+                            display: 'flex', alignItems: 'center', gap: '6px', 
+                            padding: '6px 8px', cursor: 'pointer',
+                            color: 'rgba(255,255,255,0.7)',
+                            marginBottom: '6px',
+                            transition: 'color 0.2s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,1)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
                         >
-                          {isStudyExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                          <Folder size={14} style={{ color: 'var(--text-secondary)' }} />
-                          <span style={{ fontSize: '0.85rem' }}>{study.studyDescription || study.studyDate}</span>
+                          {isStudyExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          <Folder size={14} style={{ color: '#f4b94e' }} />
+                          <span style={{ fontSize: '12px', fontWeight: 500 }}>{study.studyDescription || study.studyDate}</span>
                         </div>
                         
                         {isStudyExpanded && (

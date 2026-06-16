@@ -48,14 +48,18 @@ export function useDicomUpload() {
           const seriesDescription = dataSet.string('x0008103e') || 'Unknown Series';
           const modality = dataSet.string('x00080060') || 'OT';
           const manufacturer = dataSet.string('x00080070') || '';
+          const manufacturerModel = dataSet.string('x00081090') || '';
           const institutionName = dataSet.string('x00080080') || '';
           const sliceThickness = dataSet.string('x00180050') || '';
+          const pixelSpacing = dataSet.string('x00280030') || '';
+          const kvp = dataSet.string('x00180060') || '';
+          const exposure = dataSet.string('x00181152') || '';
 
           parsedFiles.push({ 
             file, instanceNumber, 
             patientId, patientName, patientSex, patientAge,
             studyInstanceUid, studyDate, studyDescription,
-            seriesInstanceUid, seriesDescription, modality, manufacturer, institutionName, sliceThickness
+            seriesInstanceUid, seriesDescription, modality, manufacturer, manufacturerModel, institutionName, sliceThickness, pixelSpacing, kvp, exposure
           });
         } catch (e) {
           // Skip invalid
@@ -106,8 +110,12 @@ export function useDicomUpload() {
               studyDate: study.studyDate,
               studyDescription: study.studyDescription,
               manufacturer: series.files[0]?.manufacturer,
+              manufacturerModel: series.files[0]?.manufacturerModel,
               institutionName: series.files[0]?.institutionName,
-              sliceThickness: series.files[0]?.sliceThickness
+              sliceThickness: series.files[0]?.sliceThickness,
+              pixelSpacing: series.files[0]?.pixelSpacing,
+              kvp: series.files[0]?.kvp,
+              exposure: series.files[0]?.exposure
             };
             finalSeries.push(processedSeries);
             finalFlatSeries.push(processedSeries);
