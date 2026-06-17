@@ -1,7 +1,7 @@
 import { Enums, RenderingEngine, getRenderingEngine, utilities, CONSTANTS, setVolumesForViewports } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
-export const getVolume3DEngineId = (panelId: string) => `engine-3d-${panelId}`;
+export const getVolume3DEngineId = (panelId: string) => `engine-${panelId}`;
 
 export function getVolume3DIds(panelId: string, seriesUid: string = "") {
   return {
@@ -42,6 +42,11 @@ export async function setupVolume3DViewport(element: HTMLDivElement, panelId: st
       const preset = CONSTANTS.VIEWPORT_PRESETS.find(p => p.name === 'CT-Bone');
       if (preset) {
         utilities.applyPreset(volumeActor, preset);
+      }
+      // Optimize 3D rendering to prevent WebGL crash
+      const mapper = volumeActor.getMapper();
+      if (mapper && mapper.setSampleDistance) {
+        mapper.setSampleDistance(2.0); // Increase sample distance for better performance
       }
     }
   }

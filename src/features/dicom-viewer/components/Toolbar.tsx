@@ -45,7 +45,7 @@ export function Toolbar() {
     if (!renderingEngine) return;
     
     if (is3DMode) {
-      const engine3dId = `engine-3d-${activePanelId}`;
+      const engine3dId = `engine-${activePanelId}`;
       const engine3d = getRenderingEngine(engine3dId);
       if (engine3d) {
         const vp = engine3d.getViewport(`VOLUME_3D_${activePanelId}`) as any;
@@ -150,7 +150,7 @@ export function Toolbar() {
 
   const apply3DPreset = (presetName: string) => {
     if (!activePanelId) return;
-    const engine3d = getRenderingEngine(`engine-3d-${activePanelId}`);
+    const engine3d = getRenderingEngine(`engine-${activePanelId}`);
     if (!engine3d) return;
     const viewport = engine3d.getViewport(`VOLUME_3D_${activePanelId}`) as any;
     if (viewport && viewport.getDefaultActor) {
