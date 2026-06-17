@@ -1,113 +1,140 @@
 import { useEffect, useRef, useState } from 'react';
 import { useViewerStore } from '../../../store/useViewerStore';
-import { buildVtkVolume, getMprIds } from '../utils/mprSetup';
-import { Enums, getRenderingEngine, RenderingEngine } from '@cornerstonejs/core';
-import * as cornerstoneTools from '@cornerstonejs/tools';
+import { Maximize2, Box } from 'lucide-react';
+import { setupVolume3DViewport, cleanupVolume3DViewport, getVolume3DIds } from '../utils/volume3dSetup';
+import { buildVtkVolume } from '../utils/mprSetup';
 
 interface Volume3DViewerProps {
   panelId: string;
 }
 
 export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
-  const { seriesList, panels } = useViewerStore();
+  const { seriesList, panels, activePanelId } = useViewerStore();
+  
   const panel = panels.find(p => p.id === panelId);
   const seriesInstanceUid = panel?.seriesInstanceUid;
+  const isActive = activePanelId === panelId;
+  
   const series = seriesList.find(s => s.seriesInstanceUid === seriesInstanceUid);
   const imageIds = series ? series.imageIds : [];
 
-  const elementRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  const elementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isMounted = true;
-    const VIEWPORT_ID = `3D_VIEWPORT_${panelId}`;
-    const ENGINE_ID = `engine-${panelId}`;
-    const TOOL_GROUP_ID = `3D_TOOL_GROUP_${panelId}`;
-    const { volumeId: VOLUME_ID } = getMprIds(panelId, seriesInstanceUid || "");
+    let localCleanup: (() => void) | null = null;
+    let resizeObserver: ResizeObserver | null = null;
 
-    let renderingEngine: RenderingEngine;
+    const init3D = async () => {
+      if (!imageIds || imageIds.length === 0) return;
+      if (!elementRef.current) return;
 
-    const setup3D = async () => {
-      if (!imageIds || imageIds.length === 0 || !elementRef.current) return;
       setIsLoading(true);
-
+      setErrorMsg(null);
+      
       try {
-        await buildVtkVolume(imageIds, VOLUME_ID);
-        if (!isMounted || !elementRef.current) return;
-
-        renderingEngine = getRenderingEngine(ENGINE_ID) || new RenderingEngine(ENGINE_ID);
+        const { volumeId } = getVolume3DIds(panelId, seriesInstanceUid || "");
         
+        // We reuse the same volume builder as MPR
+        const volume = await buildVtkVolume(imageIds, volumeId);
         
-        renderingEngine.setViewports([
-          {
-            viewportId: VIEWPORT_ID,
-            type: Enums.ViewportType.VOLUME_3D,
-            element: elementRef.current,
-            defaultOptions: {
-              background: [0, 0, 0],
-            },
-          },
-        ]);
+        if (!isMounted) return;
 
-        const viewport = renderingEngine.getViewport(VIEWPORT_ID) as any;
-        await viewport.setVolumes([{ volumeId: VOLUME_ID }]);
-        
-        // Apply a generic soft tissue/bone preset (Default CT)
-        viewport.setProperties({
-          preset: 'CT-Bone', // We will make this configurable later
-        });
+        if (volume) {
+          const { renderingEngine } = await setupVolume3DViewport(
+            elementRef.current,
+            panelId,
+            seriesInstanceUid || ""
+          );
 
-        renderingEngine.renderViewports([VIEWPORT_ID]);
+          if (!isMounted) {
+            cleanupVolume3DViewport(panelId, renderingEngine);
+            return;
+          }
 
-        // Setup 3D Tools
-        if (!cornerstoneTools.state.tools['TrackballRotate']) {
-          cornerstoneTools.addTool(cornerstoneTools.TrackballRotateTool);
+          resizeObserver = new ResizeObserver(() => {
+            try {
+              renderingEngine.resize(true);
+            } catch (err) {
+              console.warn("Resize error in 3D:", err);
+            }
+          });
+          resizeObserver.observe(elementRef.current);
+
+          localCleanup = () => {
+            if (resizeObserver && elementRef.current) {
+              resizeObserver.unobserve(elementRef.current);
+            }
+            cleanupVolume3DViewport(panelId, renderingEngine);
+          };
+          
+          setIsLoading(false);
+        } else {
+          setErrorMsg("Could not create 3D volume.");
+          setIsLoading(false);
         }
-
-        let toolGroup = cornerstoneTools.ToolGroupManager.getToolGroup(TOOL_GROUP_ID);
-        if (!toolGroup) {
-          toolGroup = cornerstoneTools.ToolGroupManager.createToolGroup(TOOL_GROUP_ID);
-        }
-        
-        toolGroup!.addViewport(VIEWPORT_ID, ENGINE_ID);
-        toolGroup!.addTool(cornerstoneTools.TrackballRotateTool.toolName);
-        toolGroup!.setToolActive(cornerstoneTools.TrackballRotateTool.toolName, {
-          bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Primary }],
-        });
-
-        setIsLoading(false);
       } catch (err) {
-        console.error("Failed to setup 3D Volume", err);
+        console.error(err);
+        if (isMounted) {
+          setErrorMsg("Error initializing 3D volume.");
+          setIsLoading(false);
+        }
       }
     };
 
-    setup3D();
+    setTimeout(() => {
+      init3D();
+    }, 100);
 
     return () => {
       isMounted = false;
-      try {
-        const tg = cornerstoneTools.ToolGroupManager.getToolGroup(TOOL_GROUP_ID);
-        if (tg) tg.removeViewports(ENGINE_ID, VIEWPORT_ID);
-        if (renderingEngine) {
-          renderingEngine.disableElement(VIEWPORT_ID);
-          renderingEngine.destroy();
-        }
-      } catch(e) {}
+      if (localCleanup) localCleanup();
+      if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [imageIds, panelId, seriesInstanceUid]);
+  }, [panelId, seriesInstanceUid, imageIds.length]);
+
+  const color = isActive ? 'var(--accent-primary)' : 'var(--border-color)';
+  const bg = isActive ? 'rgba(6, 182, 212, 0.1)' : 'rgba(0, 0, 0, 0.4)';
+  const title = `3D Rendering - ${series?.seriesDescription || 'Volume'}`;
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
+    <div 
+      style={{ 
+        position: 'relative', background: '#000', overflow: 'hidden',
+        width: '100%', height: '100%',
+        border: isActive ? `2px solid ${color}` : '1px solid var(--border-glass)',
+        transition: 'border 0.2s ease', cursor: 'pointer'
+      }}
+    >
+      <div className="viewer-overlay-card" style={{ top: '10px', left: '10px', color: color, borderColor: isActive ? color : 'var(--border-color)' }}>
+        <span style={{ background: bg, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Box size={14} /> {title}
+        </span>
+      </div>
+
+      <div className="viewer-overlay-card overlay-bottom-left" style={{ bottom: '10px', left: '10px', flexDirection: 'column', alignItems: 'flex-start', color: color, borderColor: 'transparent' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: '4px' }}>
+          <Maximize2 size={12} /> Left Click: Rotate | Right Click: Zoom | Middle: Pan
+        </span>
+      </div>
+
+      <div ref={elementRef} style={{ width: '100%', height: '100%', position: 'relative' }} onContextMenu={(e) => e.preventDefault()} />
+      
       {isLoading && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', zIndex: 10, color: 'var(--accent-primary)' }}>
-          Rendering 3D Volume...
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', zIndex: 10, color: '#fff', flexDirection: 'column', gap: '10px' }}>
+          <div className="spinner" style={{ width: '30px', height: '30px', border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#06b6d4', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <div>Loading 3D Volume...</div>
         </div>
       )}
-      <div 
-        ref={elementRef} 
-        style={{ width: '100%', height: '100%' }} 
-        onContextMenu={(e) => e.preventDefault()} 
-      />
+
+      {errorMsg && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', zIndex: 10, color: '#ef4444' }}>
+          {errorMsg}
+        </div>
+      )}
     </div>
   );
 }

@@ -49,7 +49,7 @@ export function useDicomTools(_elementRef: React.RefObject<HTMLDivElement | null
       // Add tools globally if not already added
       const toolsToRegister = [
         WindowLevelTool, ZoomTool, PanTool, LengthTool, AngleTool, 
-        RectangleROITool, CircleROITool, ProbeTool, PlanarFreehandROITool, StackScrollTool, EraserTool, CrosshairsTool
+        RectangleROITool, CircleROITool, ProbeTool, PlanarFreehandROITool, StackScrollTool, EraserTool, CrosshairsTool, cornerstoneTools.TrackballRotateTool
       ];
       
       toolsToRegister.forEach(tool => {

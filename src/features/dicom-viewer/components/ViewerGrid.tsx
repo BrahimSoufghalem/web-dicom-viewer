@@ -46,10 +46,10 @@ export function ViewerGrid() {
         {panel.seriesInstanceUid ? (
           panel.is3DMode ? (
             <Volume3DViewer panelId={panel.id} />
-          ) : !panel.isMprMode ? (
-            <Viewer panelId={panel.id} />
-          ) : (
+          ) : panel.isMprMode ? (
             <MprViewer panelId={panel.id} />
+          ) : (
+            <Viewer panelId={panel.id} />
           )
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'var(--text-secondary)', fontSize: '1.2rem', textAlign: 'center', padding: '1rem' }}>

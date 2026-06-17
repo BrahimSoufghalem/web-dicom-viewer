@@ -137,7 +137,7 @@ export const useViewerStore = create<ViewerState>((set) => ({
   setPanelMprMode: (panelId, isMprMode) => set((state) => ({
     panels: state.panels.map(p => p.id === panelId ? { ...p, isMprMode, is3DMode: isMprMode ? false : p.is3DMode } : p)
   })),
-
+  
   setPanel3DMode: (panelId, is3DMode) => set((state) => ({
     panels: state.panels.map(p => p.id === panelId ? { ...p, is3DMode, isMprMode: is3DMode ? false : p.isMprMode } : p)
   })),
@@ -212,7 +212,7 @@ export const useViewerStore = create<ViewerState>((set) => ({
     // Clear panels that are showing removed series
     const newPanels = state.panels.map(p => {
       if (p.seriesInstanceUid && removedSeriesUids.has(p.seriesInstanceUid)) {
-        return { ...p, seriesInstanceUid: null, isMprMode: false, currentImageIndex: 0, isPlaying: false };
+        return { ...p, seriesInstanceUid: null, isMprMode: false, is3DMode: false, currentImageIndex: 0, isPlaying: false };
       }
       return p;
     });

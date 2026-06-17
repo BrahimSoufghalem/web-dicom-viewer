@@ -1,7 +1,7 @@
 import { getRenderingEngine } from '@cornerstonejs/core';
 import { useViewerStore } from '../../../store/useViewerStore';
 import { useLanguageStore } from '../../../store/useLanguageStore';
-import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info, Box } from 'lucide-react';
+import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info } from 'lucide-react';
 import { getMprIds } from '../utils/mprSetup';
 import { useState } from 'react';
 import { DicomTagsModal } from './DicomTagsModal';
@@ -12,12 +12,12 @@ export function Toolbar() {
     panels, activePanelId,
     setPanelPlaying,
     setPanelMprMode,
+    setPanel3DMode,
     seriesList,
     playbackSpeed,
     setPlaybackSpeed,
     isInverted,
-    setIsInverted,
-    setPanel3DMode
+    setIsInverted
   } = useViewerStore();
   
   const { t } = useLanguageStore();
@@ -44,7 +44,14 @@ export function Toolbar() {
     const renderingEngine = getRenderingEngine(engineId);
     if (!renderingEngine) return;
     
-    if (isMprMode) {
+    if (is3DMode) {
+      const engine3dId = `engine-3d-${activePanelId}`;
+      const engine3d = getRenderingEngine(engine3dId);
+      if (engine3d) {
+        const vp = engine3d.getViewport(`VOLUME_3D_${activePanelId}`) as any;
+        if (vp) { vp.resetCamera(); vp.resetProperties(); vp.render(); }
+      }
+    } else if (isMprMode) {
       const { viewportIds } = getMprIds(activePanelId);
       if (mprIsLinked) {
         viewportIds.forEach(id => {
@@ -138,6 +145,17 @@ export function Toolbar() {
         viewport.setProperties({ voiRange: { lower, upper } });
         viewport.render();
       }
+    }
+  };
+
+  const apply3DPreset = (presetName: string) => {
+    if (!activePanelId) return;
+    const engine3d = getRenderingEngine(`engine-3d-${activePanelId}`);
+    if (!engine3d) return;
+    const viewport = engine3d.getViewport(`VOLUME_3D_${activePanelId}`) as any;
+    if (viewport) {
+      viewport.setProperties({ preset: presetName });
+      viewport.render();
     }
   };
 
@@ -244,17 +262,6 @@ export function Toolbar() {
 
       <div className="tool-group" style={{ opacity: activePanelId ? 1 : 0.5, pointerEvents: activePanelId ? 'auto' : 'none' }}>
         <button 
-          className={`tool-btn ${is3DMode ? 'active' : ''}`} 
-          onClick={() => activePanelId && setPanel3DMode(activePanelId, !is3DMode)}
-          style={is3DMode ? { color: '#ec4899', background: 'rgba(236,72,153,0.15)' } : {}}
-        >
-          <Box size={18} />
-          <span className="tooltip">3D Volume Rendering</span>
-        </button>
-      </div>
-
-      <div className="tool-group" style={{ opacity: activePanelId ? 1 : 0.5, pointerEvents: activePanelId ? 'auto' : 'none' }}>
-        <button 
           className={`tool-btn ${isInverted ? 'active' : ''}`} 
           onClick={handleInvert}
           style={isInverted ? { color: '#ffffff', background: 'rgba(255,255,255,0.15)' } : {}}
@@ -311,11 +318,22 @@ export function Toolbar() {
           </button>
           {showPresets && (
             <div className="preset-menu" style={{ position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', background: '#111418', padding: '0.4rem', borderRadius: '8px', zIndex: 9999, display: 'flex', flexDirection: 'column', minWidth: '130px', boxShadow: '0 8px 16px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('400,40'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Soft Tissue</button>
-              <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('1500,-600'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Lung</button>
-              <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('1500,300'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Bone</button>
-              <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('80,40'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Brain</button>
-              <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('350,50'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Mediastinum</button>
+              {is3DMode ? (
+                <>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { apply3DPreset('CT-Bone'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Bone</button>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { apply3DPreset('CT-MIP'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>MIP</button>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { apply3DPreset('CT-Soft-Tissue'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Soft Tissue</button>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { apply3DPreset('CT-Coronary-Arteries'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Angio</button>
+                </>
+              ) : (
+                <>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('400,40'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Soft Tissue</button>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('1500,-600'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Lung</button>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('1500,300'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Bone</button>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('80,40'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Brain</button>
+                  <button style={{ padding: '0.5rem 0.75rem', textAlign: 'left', background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', transition: 'background 0.1s' }} onClick={() => { applyWindowPreset('350,50'); setShowPresets(false); }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Mediastinum</button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -323,10 +341,15 @@ export function Toolbar() {
         {imageIds.length >= 10 && (
           <div className="mpr-toggle" style={{ marginLeft: '0.5rem', display: 'flex', background: 'rgba(255,255,255,0.04)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', gap: '2px' }}>
             <button
-              onClick={() => activePanelId && setPanelMprMode(activePanelId, false)}
+              onClick={() => {
+                if (activePanelId) {
+                  setPanelMprMode(activePanelId, false);
+                  setPanel3DMode(activePanelId, false);
+                }
+              }}
               style={{
-                background: !isMprMode ? 'rgba(255,255,255,0.12)' : 'transparent',
-                color: !isMprMode ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                background: (!isMprMode && !is3DMode) ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: (!isMprMode && !is3DMode) ? '#ffffff' : 'rgba(255,255,255,0.4)',
                 border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease', outline: 'none'
               }}
             >
@@ -341,6 +364,16 @@ export function Toolbar() {
               }}
             >
               MPR
+            </button>
+            <button
+              onClick={() => activePanelId && setPanel3DMode(activePanelId, true)}
+              style={{
+                background: is3DMode ? 'rgba(239,159,39,0.2)' : 'transparent',
+                color: is3DMode ? '#f4b94e' : 'rgba(255,255,255,0.4)',
+                border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease', outline: 'none'
+              }}
+            >
+              3D
             </button>
           </div>
         )}

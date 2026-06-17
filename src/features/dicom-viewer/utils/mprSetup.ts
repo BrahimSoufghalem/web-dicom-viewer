@@ -1,50 +1,35 @@
-import { volumeLoader, Enums, RenderingEngine, imageLoader, getRenderingEngine, cache, setVolumesForViewports } from '@cornerstonejs/core';
+import { volumeLoader, Enums, RenderingEngine, imageLoader, getRenderingEngine, cache } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
 export const getMprEngineId = (panelId: string) => `engine-${panelId}`;
 
 export function getMprIds(panelId: string, seriesUid: string = "") {
   return {
-    volumeId: `cornerstoneStreamingImageVolume:SHARED_VOLUME_${seriesUid}`,
+    volumeId: `cornerstoneStreamingImageVolume:MY_VOLUME_${panelId}_${seriesUid}`,
     toolGroupId: `MPR_TOOL_GROUP_${panelId}`,
     voiSyncId: `MPR_VOI_SYNC_${panelId}`,
     zoomPanSyncId: `MPR_ZOOM_PAN_SYNC_${panelId}`,
     viewportIds: [`MPR_AXIAL_${panelId}`, `MPR_CORONAL_${panelId}`, `MPR_SAGITTAL_${panelId}`]
   };
 }
-const volumePromises = new Map<string, Promise<any>>();
 
 export async function buildVtkVolume(imageIds: string[], volumeId: string) {
   if (!imageIds || imageIds.length === 0) return null;
 
   try {
     const existingVolume = cache.getVolume(volumeId);
-    // Only return if it's fully loaded (no pending promise)
-    if (existingVolume && !volumePromises.has(volumeId)) {
+    if (existingVolume) {
       return existingVolume;
     }
 
-    if (volumePromises.has(volumeId)) {
-      return await volumePromises.get(volumeId);
-    }
+    const loadPromises = imageIds.map(imageId => imageLoader.loadAndCacheImage(imageId));
+    await Promise.all(loadPromises);
 
-    const loadVolumeTask = async () => {
-      const loadPromises = imageIds.map(imageId => imageLoader.loadAndCacheImage(imageId));
-      await Promise.all(loadPromises);
-
-      const volume = await volumeLoader.createAndCacheVolume(volumeId, { imageIds });
-      await volume.load();
-      return volume;
-    };
-
-    const promise = loadVolumeTask();
-    volumePromises.set(volumeId, promise);
+    const volume = await volumeLoader.createAndCacheVolume(volumeId, { imageIds });
     
-    const volume = await promise;
-    volumePromises.delete(volumeId);
+    await volume.load();
     return volume;
   } catch (error) {
-    volumePromises.delete(volumeId);
     console.error("Failed to build volume", error);
     throw error;
   }
@@ -88,7 +73,12 @@ export async function setupMprViewports(elements: HTMLDivElement[], panelId: str
 
   renderingEngine.setViewports(viewportInputArray);
 
-  await setVolumesForViewports(renderingEngine, [{ volumeId }], viewportIds);
+  await Promise.all(
+    viewportIds.map(async (viewportId) => {
+      const viewport = renderingEngine.getViewport(viewportId);
+      await (viewport as any).setVolumes([{ volumeId }]);
+    })
+  );
 
   renderingEngine.renderViewports(viewportIds);
 
@@ -127,10 +117,6 @@ export function cleanupMprViewports(panelId: string, renderingEngine: RenderingE
   viewportIds.forEach(id => {
     try { renderingEngine.disableElement(id); } catch(e) {}
   });
-
-  try {
-    renderingEngine.destroy();
-  } catch(e) {}
 
   // Intentionally leaving the volume in the cache so it can be instantly reused
   // when switching layouts or toggling MPR mode off and on.

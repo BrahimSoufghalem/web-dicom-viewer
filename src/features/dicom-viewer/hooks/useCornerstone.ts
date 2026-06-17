@@ -128,11 +128,8 @@ export function useCornerstone(imageIds: string[], currentImageIndex: number, vi
     return () => {
       isMounted = false;
       if (resizeObserver) resizeObserver.disconnect();
-      
-      const currentEngine = getRenderingEngine(renderingEngineId);
-      if (currentEngine) {
-        try { currentEngine.disableElement(viewportId); } catch(e){}
-        try { currentEngine.destroy(); } catch(e){}
+      if (engine) {
+        try { engine.disableElement(viewportId); } catch(e){}
       }
     };
   }, [imageIds, viewportId]); // Re-run when imageIds or viewportId changes
