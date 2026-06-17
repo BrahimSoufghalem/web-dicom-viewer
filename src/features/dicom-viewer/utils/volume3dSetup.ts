@@ -1,4 +1,4 @@
-import { Enums, RenderingEngine, getRenderingEngine } from '@cornerstonejs/core';
+import { Enums, RenderingEngine, getRenderingEngine, utilities, CONSTANTS, setVolumesForViewports } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
 export const getVolume3DEngineId = (panelId: string) => `engine-3d-${panelId}`;
@@ -28,9 +28,23 @@ export async function setupVolume3DViewport(element: HTMLDivElement, panelId: st
 
   renderingEngine.enableElement(viewportInput);
   
-  const viewport = renderingEngine.getViewport(viewportId);
   // Volume must already be loaded (using mprSetup's buildVtkVolume)
-  await (viewport as any).setVolumes([{ volumeId }]);
+  await setVolumesForViewports(renderingEngine, [{ volumeId, blendMode: Enums.BlendModes.COMPOSITE }], [viewportId]);
+  
+  const viewport = renderingEngine.getViewport(viewportId);
+  if (viewport) {
+    (viewport as any).resetCamera();
+  }
+  
+  if ((viewport as any).getDefaultActor) {
+    const volumeActor = (viewport as any).getDefaultActor()?.actor;
+    if (volumeActor) {
+      const preset = CONSTANTS.VIEWPORT_PRESETS.find(p => p.name === 'CT-Bone');
+      if (preset) {
+        utilities.applyPreset(volumeActor, preset);
+      }
+    }
+  }
   
   renderingEngine.renderViewport(viewportId);
 

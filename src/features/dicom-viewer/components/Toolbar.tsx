@@ -1,4 +1,4 @@
-import { getRenderingEngine } from '@cornerstonejs/core';
+import { getRenderingEngine, utilities, CONSTANTS } from '@cornerstonejs/core';
 import { useViewerStore } from '../../../store/useViewerStore';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info } from 'lucide-react';
@@ -153,9 +153,15 @@ export function Toolbar() {
     const engine3d = getRenderingEngine(`engine-3d-${activePanelId}`);
     if (!engine3d) return;
     const viewport = engine3d.getViewport(`VOLUME_3D_${activePanelId}`) as any;
-    if (viewport) {
-      viewport.setProperties({ preset: presetName });
-      viewport.render();
+    if (viewport && viewport.getDefaultActor) {
+      const volumeActor = viewport.getDefaultActor()?.actor;
+      if (volumeActor) {
+        const preset = CONSTANTS.VIEWPORT_PRESETS.find(p => p.name === presetName);
+        if (preset) {
+          utilities.applyPreset(volumeActor, preset);
+          viewport.render();
+        }
+      }
     }
   };
 
