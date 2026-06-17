@@ -21,7 +21,7 @@ export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
   useEffect(() => {
     let isMounted = true;
     const VIEWPORT_ID = `3D_VIEWPORT_${panelId}`;
-    const ENGINE_ID = `DICOM_GLOBAL_ENGINE`;
+    const ENGINE_ID = `engine-${panelId}`;
     const TOOL_GROUP_ID = `3D_TOOL_GROUP_${panelId}`;
     const { volumeId: VOLUME_ID } = getMprIds(panelId, seriesInstanceUid || "");
 
@@ -33,7 +33,7 @@ export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
 
       try {
         await buildVtkVolume(imageIds, VOLUME_ID);
-        if (!isMounted) return;
+        if (!isMounted || !elementRef.current) return;
 
         renderingEngine = getRenderingEngine(ENGINE_ID) || new RenderingEngine(ENGINE_ID);
         
@@ -90,6 +90,7 @@ export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
         if (tg) tg.removeViewports(ENGINE_ID, VIEWPORT_ID);
         if (renderingEngine) {
           renderingEngine.disableElement(VIEWPORT_ID);
+          renderingEngine.destroy();
         }
       } catch(e) {}
     };

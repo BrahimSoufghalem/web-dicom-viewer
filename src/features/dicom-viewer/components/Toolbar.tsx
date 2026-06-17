@@ -37,7 +37,7 @@ export function Toolbar() {
 
   const handleToolClick = (toolId: string) => setActiveTool(toolId);
 
-  const engineId = `DICOM_GLOBAL_ENGINE`;
+  const engineId = `engine-${activePanelId}`;
 
   const handleReset = () => {
     if (!activePanelId) return;

@@ -133,7 +133,7 @@ export function MprViewer({ panelId }: MprViewerProps) {
       try {
         const volume = await buildVtkVolume(imageIds, volumeId);
         
-        if (!isMounted) return;
+        if (!isMounted || !axialRef.current || !coronalRef.current || !sagittalRef.current) return;
 
         if (volume) {
           const { renderingEngine } = await setupMprViewports(

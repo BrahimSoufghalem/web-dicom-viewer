@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { RenderingEngine, Enums, getRenderingEngine } from '@cornerstonejs/core';
 
-export function useCornerstone(imageIds: string[], currentImageIndex: number, viewportId: string) {
+export function useCornerstone(imageIds: string[], currentImageIndex: number, viewportId: string, renderingEngineId: string) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
-    const GLOBAL_ENGINE_ID = 'DICOM_GLOBAL_ENGINE';
-    let engine = getRenderingEngine(GLOBAL_ENGINE_ID);
+    let engine = getRenderingEngine(renderingEngineId);
     
     if (!engine) {
-      engine = new RenderingEngine(GLOBAL_ENGINE_ID);
+      engine = new RenderingEngine(renderingEngineId);
     }
 
     let resizeObserver: ResizeObserver | null = null;
@@ -129,8 +128,11 @@ export function useCornerstone(imageIds: string[], currentImageIndex: number, vi
     return () => {
       isMounted = false;
       if (resizeObserver) resizeObserver.disconnect();
-      if (engine) {
-        try { engine.disableElement(viewportId); } catch(e){}
+      
+      const currentEngine = getRenderingEngine(renderingEngineId);
+      if (currentEngine) {
+        try { currentEngine.disableElement(viewportId); } catch(e){}
+        try { currentEngine.destroy(); } catch(e){}
       }
     };
   }, [imageIds, viewportId]); // Re-run when imageIds or viewportId changes
