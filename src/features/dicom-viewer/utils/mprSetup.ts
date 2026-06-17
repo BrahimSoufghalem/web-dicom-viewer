@@ -1,4 +1,4 @@
-import { volumeLoader, Enums, RenderingEngine, imageLoader, getRenderingEngine, cache } from '@cornerstonejs/core';
+import { volumeLoader, Enums, RenderingEngine, imageLoader, getRenderingEngine, cache, setVolumesForViewports } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
 export const getMprEngineId = (panelId: string) => `engine-${panelId}`;
@@ -12,24 +12,39 @@ export function getMprIds(panelId: string, seriesUid: string = "") {
     viewportIds: [`MPR_AXIAL_${panelId}`, `MPR_CORONAL_${panelId}`, `MPR_SAGITTAL_${panelId}`]
   };
 }
+const volumePromises = new Map<string, Promise<any>>();
 
 export async function buildVtkVolume(imageIds: string[], volumeId: string) {
   if (!imageIds || imageIds.length === 0) return null;
 
   try {
     const existingVolume = cache.getVolume(volumeId);
-    if (existingVolume) {
+    // Only return if it's fully loaded (no pending promise)
+    if (existingVolume && !volumePromises.has(volumeId)) {
       return existingVolume;
     }
 
-    const loadPromises = imageIds.map(imageId => imageLoader.loadAndCacheImage(imageId));
-    await Promise.all(loadPromises);
+    if (volumePromises.has(volumeId)) {
+      return await volumePromises.get(volumeId);
+    }
 
-    const volume = await volumeLoader.createAndCacheVolume(volumeId, { imageIds });
+    const loadVolumeTask = async () => {
+      const loadPromises = imageIds.map(imageId => imageLoader.loadAndCacheImage(imageId));
+      await Promise.all(loadPromises);
+
+      const volume = await volumeLoader.createAndCacheVolume(volumeId, { imageIds });
+      await volume.load();
+      return volume;
+    };
+
+    const promise = loadVolumeTask();
+    volumePromises.set(volumeId, promise);
     
-    await volume.load();
+    const volume = await promise;
+    volumePromises.delete(volumeId);
     return volume;
   } catch (error) {
+    volumePromises.delete(volumeId);
     console.error("Failed to build volume", error);
     throw error;
   }
@@ -73,12 +88,7 @@ export async function setupMprViewports(elements: HTMLDivElement[], panelId: str
 
   renderingEngine.setViewports(viewportInputArray);
 
-  await Promise.all(
-    viewportIds.map(async (viewportId) => {
-      const viewport = renderingEngine.getViewport(viewportId);
-      await (viewport as any).setVolumes([{ volumeId }]);
-    })
-  );
+  await setVolumesForViewports(renderingEngine, [{ volumeId }], viewportIds);
 
   renderingEngine.renderViewports(viewportIds);
 
