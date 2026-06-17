@@ -36,7 +36,7 @@ export function Viewer({ panelId }: ViewerProps) {
   const imageIds = series ? series.imageIds : [];
   const metadata = series;
 
-  const { elementRef, errorMsg, isLoading } = useCornerstone(imageIds, currentImageIndex, VIEWPORT_ID, ENGINE_ID);
+  const { elementRef, errorMsg, isLoading } = useCornerstone(imageIds, currentImageIndex, VIEWPORT_ID);
   
   useDicomTools(elementRef, TOOL_GROUP_ID);
 

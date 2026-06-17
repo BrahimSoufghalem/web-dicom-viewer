@@ -21,7 +21,7 @@ export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
   useEffect(() => {
     let isMounted = true;
     const VIEWPORT_ID = `3D_VIEWPORT_${panelId}`;
-    const ENGINE_ID = `3d-engine-${panelId}`;
+    const ENGINE_ID = `DICOM_GLOBAL_ENGINE`;
     const TOOL_GROUP_ID = `3D_TOOL_GROUP_${panelId}`;
     const VOLUME_ID = `cornerstoneStreamingImageVolume:MY_VOLUME_${panelId}_${seriesInstanceUid}`;
 
@@ -36,6 +36,7 @@ export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
         if (!isMounted) return;
 
         renderingEngine = getRenderingEngine(ENGINE_ID) || new RenderingEngine(ENGINE_ID);
+        
         
         renderingEngine.setViewports([
           {
@@ -89,7 +90,6 @@ export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
         if (tg) tg.removeViewports(ENGINE_ID, VIEWPORT_ID);
         if (renderingEngine) {
           renderingEngine.disableElement(VIEWPORT_ID);
-          renderingEngine.destroy();
         }
       } catch(e) {}
     };

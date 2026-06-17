@@ -1,7 +1,7 @@
 import { volumeLoader, Enums, RenderingEngine, imageLoader, getRenderingEngine, cache } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
-export const getMprEngineId = (panelId: string) => `engine-${panelId}`;
+export const getMprEngineId = (_panelId: string) => `DICOM_GLOBAL_ENGINE`;
 
 export function getMprIds(panelId: string, seriesUid: string = "") {
   return {
@@ -117,10 +117,6 @@ export function cleanupMprViewports(panelId: string, renderingEngine: RenderingE
   viewportIds.forEach(id => {
     try { renderingEngine.disableElement(id); } catch(e) {}
   });
-
-  try {
-    renderingEngine.destroy();
-  } catch(e) {}
 
   // Intentionally leaving the volume in the cache so it can be instantly reused
   // when switching layouts or toggling MPR mode off and on.
