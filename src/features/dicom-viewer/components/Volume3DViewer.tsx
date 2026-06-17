@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useViewerStore } from '../../../store/useViewerStore';
-import { buildVtkVolume } from '../utils/mprSetup';
+import { buildVtkVolume, getMprIds } from '../utils/mprSetup';
 import { Enums, getRenderingEngine, RenderingEngine } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
@@ -23,7 +23,7 @@ export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
     const VIEWPORT_ID = `3D_VIEWPORT_${panelId}`;
     const ENGINE_ID = `DICOM_GLOBAL_ENGINE`;
     const TOOL_GROUP_ID = `3D_TOOL_GROUP_${panelId}`;
-    const VOLUME_ID = `cornerstoneStreamingImageVolume:MY_VOLUME_${panelId}_${seriesInstanceUid}`;
+    const { volumeId: VOLUME_ID } = getMprIds(panelId, seriesInstanceUid || "");
 
     let renderingEngine: RenderingEngine;
 
