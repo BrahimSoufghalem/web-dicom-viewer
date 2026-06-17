@@ -2,6 +2,7 @@ import { useViewerStore } from '../../../store/useViewerStore';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { Viewer } from './Viewer';
 import { MprViewer } from './MprViewer';
+import { Volume3DViewer } from './Volume3DViewer';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 
 const ResizeHandle = ({ orientation = "horizontal" }) => (
@@ -43,7 +44,9 @@ export function ViewerGrid() {
         }}
       >
         {panel.seriesInstanceUid ? (
-          !panel.isMprMode ? (
+          panel.is3DMode ? (
+            <Volume3DViewer panelId={panel.id} />
+          ) : !panel.isMprMode ? (
             <Viewer panelId={panel.id} />
           ) : (
             <MprViewer panelId={panel.id} />

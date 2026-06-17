@@ -39,6 +39,7 @@ export interface ViewerPanel {
   id: string;
   seriesInstanceUid: string | null;
   isMprMode: boolean;
+  is3DMode: boolean;
   currentImageIndex: number;
   isPlaying: boolean;
   mprIsLinked: boolean;
@@ -69,6 +70,7 @@ interface ViewerState {
   setActivePanelId: (panelId: string) => void;
   setPanelSeries: (panelId: string, seriesInstanceUid: string) => void;
   setPanelMprMode: (panelId: string, isMprMode: boolean) => void;
+  setPanel3DMode: (panelId: string, is3DMode: boolean) => void;
   setPanelImageIndex: (panelId: string, index: number) => void;
   setPanelPlaying: (panelId: string, isPlaying: boolean) => void;
   setPanelMprLinked: (panelId: string, isLinked: boolean) => void;
@@ -87,6 +89,7 @@ const getInitialPanels = (layout: GridLayout): ViewerPanel[] => {
     id: `panel-${i + 1}`,
     seriesInstanceUid: null,
     isMprMode: false,
+    is3DMode: false,
     currentImageIndex: 0,
     isPlaying: false,
     mprIsLinked: true,
@@ -99,7 +102,7 @@ export const useViewerStore = create<ViewerState>((set) => ({
   seriesList: [],
   
   layout: '1x1',
-  panels: [{ id: 'panel-1', seriesInstanceUid: null, isMprMode: false, currentImageIndex: 0, isPlaying: false, mprIsLinked: false, mprActiveViewport: 'MPR_AXIAL_panel-1' }],
+  panels: [{ id: 'panel-1', seriesInstanceUid: null, isMprMode: false, is3DMode: false, currentImageIndex: 0, isPlaying: false, mprIsLinked: false, mprActiveViewport: 'MPR_AXIAL_panel-1' }],
   activePanelId: 'panel-1',
   
   activeTool: 'Wwwc',
@@ -132,7 +135,11 @@ export const useViewerStore = create<ViewerState>((set) => ({
   })),
   
   setPanelMprMode: (panelId, isMprMode) => set((state) => ({
-    panels: state.panels.map(p => p.id === panelId ? { ...p, isMprMode } : p)
+    panels: state.panels.map(p => p.id === panelId ? { ...p, isMprMode, is3DMode: isMprMode ? false : p.is3DMode } : p)
+  })),
+
+  setPanel3DMode: (panelId, is3DMode) => set((state) => ({
+    panels: state.panels.map(p => p.id === panelId ? { ...p, is3DMode, isMprMode: is3DMode ? false : p.isMprMode } : p)
   })),
   
   setPanelImageIndex: (panelId, index) => set((state) => ({
@@ -155,7 +162,7 @@ export const useViewerStore = create<ViewerState>((set) => ({
     patients, 
     seriesList: flatSeries,
     layout: '1x1',
-    panels: [{ id: 'panel-1', seriesInstanceUid: flatSeries.length > 0 ? flatSeries[0].seriesInstanceUid : null, isMprMode: false, currentImageIndex: 0, isPlaying: false, mprIsLinked: false, mprActiveViewport: 'MPR_AXIAL_panel-1' }],
+    panels: [{ id: 'panel-1', seriesInstanceUid: flatSeries.length > 0 ? flatSeries[0].seriesInstanceUid : null, isMprMode: false, is3DMode: false, currentImageIndex: 0, isPlaying: false, mprIsLinked: false, mprActiveViewport: 'MPR_AXIAL_panel-1' }],
     activePanelId: 'panel-1'
   }),
   
@@ -221,7 +228,7 @@ export const useViewerStore = create<ViewerState>((set) => ({
     patients: [],
     seriesList: [],
     layout: '1x1',
-    panels: [{ id: 'panel-1', seriesInstanceUid: null, isMprMode: false, currentImageIndex: 0, isPlaying: false, mprIsLinked: false, mprActiveViewport: 'MPR_AXIAL_panel-1' }],
+    panels: [{ id: 'panel-1', seriesInstanceUid: null, isMprMode: false, is3DMode: false, currentImageIndex: 0, isPlaying: false, mprIsLinked: false, mprActiveViewport: 'MPR_AXIAL_panel-1' }],
     activePanelId: 'panel-1',
     activeTool: 'Wwwc', 
     isInverted: false

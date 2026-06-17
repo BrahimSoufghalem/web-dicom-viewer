@@ -1,7 +1,7 @@
 import { getRenderingEngine } from '@cornerstonejs/core';
 import { useViewerStore } from '../../../store/useViewerStore';
 import { useLanguageStore } from '../../../store/useLanguageStore';
-import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info } from 'lucide-react';
+import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info, Box } from 'lucide-react';
 import { getMprIds } from '../utils/mprSetup';
 import { useState } from 'react';
 import { DicomTagsModal } from './DicomTagsModal';
@@ -16,7 +16,8 @@ export function Toolbar() {
     playbackSpeed,
     setPlaybackSpeed,
     isInverted,
-    setIsInverted
+    setIsInverted,
+    setPanel3DMode
   } = useViewerStore();
   
   const { t } = useLanguageStore();
@@ -26,6 +27,7 @@ export function Toolbar() {
   const activePanel = panels.find(p => p.id === activePanelId);
   const isPlaying = activePanel?.isPlaying || false;
   const isMprMode = activePanel?.isMprMode || false;
+  const is3DMode = activePanel?.is3DMode || false;
   const mprIsLinked = activePanel?.mprIsLinked || false;
   const mprActiveViewport = activePanel?.mprActiveViewport || '';
   const seriesInstanceUid = activePanel?.seriesInstanceUid;
@@ -239,6 +241,17 @@ export function Toolbar() {
           </button>
         </div>
       )}
+
+      <div className="tool-group" style={{ opacity: activePanelId ? 1 : 0.5, pointerEvents: activePanelId ? 'auto' : 'none' }}>
+        <button 
+          className={`tool-btn ${is3DMode ? 'active' : ''}`} 
+          onClick={() => activePanelId && setPanel3DMode(activePanelId, !is3DMode)}
+          style={is3DMode ? { color: '#ec4899', background: 'rgba(236,72,153,0.15)' } : {}}
+        >
+          <Box size={18} />
+          <span className="tooltip">3D Volume Rendering</span>
+        </button>
+      </div>
 
       <div className="tool-group" style={{ opacity: activePanelId ? 1 : 0.5, pointerEvents: activePanelId ? 'auto' : 'none' }}>
         <button 
