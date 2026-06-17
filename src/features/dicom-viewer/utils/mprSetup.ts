@@ -5,7 +5,7 @@ export const getMprEngineId = (panelId: string) => `engine-${panelId}`;
 
 export function getMprIds(panelId: string, seriesUid: string = "") {
   return {
-    volumeId: `cornerstoneStreamingImageVolume:MY_VOLUME_${panelId}_${seriesUid}`,
+    volumeId: `cornerstoneStreamingImageVolume:SHARED_VOLUME_${seriesUid}`,
     toolGroupId: `MPR_TOOL_GROUP_${panelId}`,
     voiSyncId: `MPR_VOI_SYNC_${panelId}`,
     zoomPanSyncId: `MPR_ZOOM_PAN_SYNC_${panelId}`,
