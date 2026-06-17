@@ -118,6 +118,10 @@ export function cleanupMprViewports(panelId: string, renderingEngine: RenderingE
     try { renderingEngine.disableElement(id); } catch(e) {}
   });
 
+  try {
+    renderingEngine.destroy();
+  } catch(e) {}
+
   // Intentionally leaving the volume in the cache so it can be instantly reused
   // when switching layouts or toggling MPR mode off and on.
 }
