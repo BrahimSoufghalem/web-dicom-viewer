@@ -91,6 +91,11 @@ const translations: Translations = {
   'measurements.empty': { en: 'No measurements yet. Use tools to measure length, angles, or ROI.', fr: 'Aucune mesure pour l\'instant. Utilisez les outils pour mesurer.' },
   'measurements.slice': { en: 'Slice', fr: 'Coupe' },
   'measurements.delete': { en: 'Delete Measurement', fr: 'Supprimer la mesure' },
+
+  // SegmentationPanel.tsx
+  'segmentation.title': { en: 'Segmentation Tools', fr: 'Outils de Segmentation' },
+  'segmentation.add': { en: 'Add Segment', fr: 'Ajouter Segment' },
+  'segmentation.brushSize': { en: 'Brush Size', fr: 'Taille du Pinceau' },
 };
 
 interface LanguageState {

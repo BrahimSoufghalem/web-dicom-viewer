@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useViewerStore } from '../../../store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Maximize2, Box } from 'lucide-react';
 import { setupVolume3DViewport, cleanupVolume3DViewport, getVolume3DIds } from '../utils/volume3dSetup';
 import { buildVtkVolume } from '../utils/mprSetup';
@@ -9,7 +10,11 @@ interface Volume3DViewerProps {
 }
 
 export function Volume3DViewer({ panelId }: Volume3DViewerProps) {
-  const { seriesList, panels, activePanelId } = useViewerStore();
+  const { seriesList, panels, activePanelId } = useViewerStore(useShallow(state => ({
+    seriesList: state.seriesList,
+    panels: state.panels,
+    activePanelId: state.activePanelId
+  })));
   
   const panel = panels.find(p => p.id === panelId);
   const seriesInstanceUid = panel?.seriesInstanceUid;

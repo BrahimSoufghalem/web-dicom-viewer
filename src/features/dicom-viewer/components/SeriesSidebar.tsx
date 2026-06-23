@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useViewerStore } from '../../../store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { utilities, imageLoader } from '@cornerstonejs/core';
 import { ChevronDown, ChevronRight, User, Folder, Plus, Loader, Trash2 } from 'lucide-react';
 import { useDicomUpload } from '../../file-upload/hooks/useDicomUpload';
+import { SegmentationPanel } from './SegmentationPanel';
 
 interface ThumbnailProps {
   imageId: string;
@@ -112,7 +114,14 @@ function Thumbnail({ imageId, isActive, onClick, description, count, modality }:
 }
 
 export function SeriesSidebar() {
-  const { patients, activePanelId, panels, setPanelSeries, removePatient } = useViewerStore();
+  const { patients, removePatient, activePanelId, panels, setPanelSeries, isSegmentationPanelOpen } = useViewerStore(useShallow(state => ({
+    patients: state.patients,
+    removePatient: state.removePatient,
+    activePanelId: state.activePanelId,
+    panels: state.panels,
+    setPanelSeries: state.setPanelSeries,
+    isSegmentationPanelOpen: state.isSegmentationPanelOpen
+  })));
   const { t } = useLanguageStore();
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [expandedStudies, setExpandedStudies] = useState<Record<string, boolean>>({});
@@ -152,8 +161,14 @@ export function SeriesSidebar() {
   if (patients.length === 0) return null;
 
   return (
-    <aside className="sidebar" style={{ overflowY: 'auto' }}>
-      <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ 
+        flex: isSegmentationPanelOpen ? '1' : '1 1 auto', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        overflow: 'hidden' 
+      }}>
+        <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '32px' }}>
           <h3 className="sidebar-title" style={{ margin: 0 }}>{t('sidebar.title')}</h3>
         </div>
@@ -192,7 +207,7 @@ export function SeriesSidebar() {
         }}
       />
 
-      <div className="series-list" style={{ padding: '0.5rem', gap: '0.25rem' }}>
+      <div className="series-list" style={{ padding: '0.5rem', gap: '0.25rem', overflowY: 'auto', flex: 1 }}>
         
         {patients.map(patient => {
           const isPatientExpanded = expandedPatients[patient.patientId];
@@ -275,6 +290,19 @@ export function SeriesSidebar() {
         })}
         
       </div>
+      </div>
+
+      {isSegmentationPanelOpen && activeSeriesUid && (
+        <div style={{ 
+          flex: '1', 
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          <SegmentationPanel />
+        </div>
+      )}
     </aside>
   );
 }

@@ -1,4 +1,5 @@
 import { useViewerStore } from '../../../store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { Viewer } from './Viewer';
 import { MprViewer } from './MprViewer';
@@ -20,7 +21,12 @@ const ResizeHandle = ({ orientation = "horizontal" }) => (
 );
 
 export function ViewerGrid() {
-  const { panels, activePanelId, layout, setActivePanelId } = useViewerStore();
+  const { panels, activePanelId, layout, setActivePanelId } = useViewerStore(useShallow(state => ({
+    panels: state.panels,
+    activePanelId: state.activePanelId,
+    layout: state.layout,
+    setActivePanelId: state.setActivePanelId
+  })));
   const { t } = useLanguageStore();
 
   const renderPanel = (index: number) => {

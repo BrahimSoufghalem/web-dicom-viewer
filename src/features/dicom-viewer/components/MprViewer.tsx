@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useViewerStore } from '../../../store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { Box, AlertTriangle, Link, Unlink, Maximize2 } from 'lucide-react';
 import { buildVtkVolume, setupMprViewports, cleanupMprViewports, toggleMprSynchronizers, getMprIds, getMprEngineId } from '../utils/mprSetup';
+import { initSegmentationForVolume, addSegmentationToViewport } from '../utils/segmentationSetup';
 import { useDicomTools } from '../hooks/useDicomTools';
 import { Enums, getRenderingEngine, utilities as coreUtils } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
+import { useSegmentationStore } from '../../../store/useSegmentationStore';
 
 function MprViewportPanel({ 
   id, title, color, bg, elementRef, isActive, onClick, isLinked, onToggleLink, panelId
@@ -94,7 +97,14 @@ export function MprViewer({ panelId }: MprViewerProps) {
     setPanelMprLinked,
     setPanelMprActiveViewport,
     panels, playbackSpeed, activePanelId
-  } = useViewerStore();
+  } = useViewerStore(useShallow(state => ({
+    seriesList: state.seriesList,
+    setPanelMprLinked: state.setPanelMprLinked,
+    setPanelMprActiveViewport: state.setPanelMprActiveViewport,
+    panels: state.panels,
+    playbackSpeed: state.playbackSpeed,
+    activePanelId: state.activePanelId
+  })));
   const { t } = useLanguageStore();
   
   const panel = panels.find(p => p.id === panelId);
@@ -145,6 +155,18 @@ export function MprViewer({ panelId }: MprViewerProps) {
           if (!isMounted) {
             cleanupMprViewports(panelId, renderingEngine);
             return;
+          }
+
+          // Initialize Segmentation
+          try {
+            const segId = await initSegmentationForVolume(volumeId, seriesInstanceUid || "");
+            await Promise.all(viewportIds.map(vp => addSegmentationToViewport(vp, segId)));
+            
+            // Default active segment
+            const activeIndex = useSegmentationStore.getState().activeSegmentIndex;
+            cornerstoneTools.segmentation.segmentIndex.setActiveSegmentIndex(segId, activeIndex);
+          } catch(e) {
+            console.warn('Failed to init segmentation:', e);
           }
 
           toggleMprSynchronizers(panelId, mprIsLinked);

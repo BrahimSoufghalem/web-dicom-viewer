@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import { useViewerStore } from '../../../store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 
 const {
   ToolGroupManager,
@@ -17,6 +18,11 @@ const {
   PlanarFreehandROITool,
   EraserTool,
   CrosshairsTool,
+  BrushTool,
+  RectangleScissorsTool,
+  CircleScissorsTool,
+  SphereScissorsTool,
+  PaintFillTool,
   Enums: csToolsEnums,
 } = cornerstoneTools;
 
@@ -35,10 +41,20 @@ const TOOL_MAP: Record<string, string> = {
   FreehandRoi: PlanarFreehandROITool.toolName,
   Eraser: EraserTool.toolName,
   Crosshairs: CrosshairsTool.toolName,
+  Brush: BrushTool.toolName,
+  RectangleScissors: RectangleScissorsTool.toolName,
+  CircleScissors: CircleScissorsTool.toolName,
+  SphereScissors: SphereScissorsTool.toolName,
+  PaintFill: PaintFillTool.toolName,
 };
 
 export function useDicomTools(_elementRef: React.RefObject<HTMLDivElement | null>, toolGroupId: string, isMpr: boolean = false) {
-  const { activeTool } = useViewerStore();
+  const { activeTool, brushSize } = useViewerStore(useShallow(state => ({
+    activeTool: state.activeTool,
+    brushSize: state.brushSize
+  })));
+  const prevToolRef = useRef<string>('');
+  const prevBrushSizeRef = useRef<number>(10);
 
   useEffect(() => {
     let toolGroup = ToolGroupManager.getToolGroup(toolGroupId);
@@ -49,7 +65,8 @@ export function useDicomTools(_elementRef: React.RefObject<HTMLDivElement | null
       // Add tools globally if not already added
       const toolsToRegister = [
         WindowLevelTool, ZoomTool, PanTool, LengthTool, AngleTool, 
-        RectangleROITool, CircleROITool, ProbeTool, PlanarFreehandROITool, StackScrollTool, EraserTool, CrosshairsTool, cornerstoneTools.TrackballRotateTool
+        RectangleROITool, CircleROITool, ProbeTool, PlanarFreehandROITool, StackScrollTool, EraserTool, CrosshairsTool, cornerstoneTools.TrackballRotateTool,
+        BrushTool, RectangleScissorsTool, CircleScissorsTool, SphereScissorsTool, PaintFillTool
       ];
       
       toolsToRegister.forEach(tool => {
@@ -136,21 +153,85 @@ export function useDicomTools(_elementRef: React.RefObject<HTMLDivElement | null
       });
     }
 
-    // Update active tool based on state
-    const mappedToolName = TOOL_MAP[activeTool];
-    Object.values(TOOL_MAP).forEach(toolName => {
-      if (toolName === mappedToolName) {
-        toolGroup!.setToolActive(toolName, {
-          bindings: [{ mouseButton: MouseBindings.Primary }],
-        });
+    // --- Determine what changed ---
+    const toolChanged = activeTool !== prevToolRef.current;
+    const sizeChanged = brushSize !== prevBrushSizeRef.current;
+    prevToolRef.current = activeTool;
+    prevBrushSizeRef.current = brushSize;
+
+    // --- Handle brush size change (lightweight, no tool switching) ---
+    if (sizeChanged && !toolChanged) {
+      try {
+        const sizeNum = Number(brushSize) || 10;
+        cornerstoneTools.utilities.segmentation.setBrushSizeForToolGroup(toolGroupId, sizeNum);
+        cornerstoneTools.utilities.segmentation.invalidateBrushCursor(toolGroupId);
+      } catch (e) {}
+      return; // Nothing else to do
+    }
+
+    // --- Handle tool activation ---
+    try {
+      const primaryTool = toolGroup!.getActivePrimaryMouseButtonTool();
+      
+      let targetToolName = '';
+      let targetStrategy: string | undefined;
+
+      if (activeTool === 'Eraser') {
+        targetToolName = BrushTool.toolName;
+        targetStrategy = 'ERASE_INSIDE_CIRCLE';
       } else {
-        if (toolName === CrosshairsTool.toolName) {
-          toolGroup!.setToolDisabled(toolName);
-        } else {
-          toolGroup!.setToolPassive(toolName);
+        targetToolName = TOOL_MAP[activeTool] || activeTool;
+        if (targetToolName === BrushTool.toolName) {
+          targetStrategy = 'FILL_INSIDE_CIRCLE';
         }
       }
-    });
 
-  }, [activeTool, toolGroupId, isMpr]);
+      const toolInstance = toolGroup!.getToolInstance(targetToolName);
+      const currentStrategy = toolInstance?.configuration?.activeStrategy;
+      const needsSwitch = primaryTool !== targetToolName || (targetStrategy && targetStrategy !== currentStrategy);
+
+      if (needsSwitch) {
+        // Deactivate previous tool
+        if (primaryTool && primaryTool !== targetToolName) {
+          if (primaryTool === CrosshairsTool.toolName) {
+            toolGroup!.setToolDisabled(primaryTool);
+          } else {
+            toolGroup!.setToolPassive(primaryTool);
+          }
+        }
+
+        // Apply strategy and brush size via toolGroup configuration
+        if (targetToolName === BrushTool.toolName) {
+           toolGroup!.setToolConfiguration(targetToolName, {
+             activeStrategy: targetStrategy,
+           });
+        }
+
+        // Activate target tool (triggers a single render)
+        toolGroup!.setToolActive(targetToolName, {
+          bindings: [{ mouseButton: MouseBindings.Primary }],
+        });
+      }
+
+      // Sync brush size if it also changed alongside a tool switch
+      if (sizeChanged) {
+        try {
+          cornerstoneTools.utilities.segmentation.setBrushSizeForToolGroup(toolGroupId, Number(brushSize) || 10);
+          cornerstoneTools.utilities.segmentation.invalidateBrushCursor(toolGroupId);
+        } catch (e) {}
+      }
+
+      // Ensure crosshairs is disabled if not the active tool
+      if (targetToolName !== CrosshairsTool.toolName) {
+        const chInstance = toolGroup!.getToolInstance(CrosshairsTool.toolName);
+        if (chInstance && chInstance.mode !== 'Disabled') {
+          toolGroup!.setToolDisabled(CrosshairsTool.toolName);
+        }
+      }
+      
+    } catch (e) {
+      console.warn("Error updating tools", e);
+    }
+
+  }, [activeTool, brushSize, toolGroupId, isMpr]);
 }

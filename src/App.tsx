@@ -1,4 +1,5 @@
 import { useViewerStore } from './store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useLanguageStore } from './store/useLanguageStore';
 import { FileUploader } from './features/file-upload/components/FileUploader';
 import { ViewerGrid } from './features/dicom-viewer/components/ViewerGrid';
@@ -12,7 +13,12 @@ import { useMeasurements } from './features/dicom-viewer/hooks/useMeasurements';
 
 export default function App() {
   const { measurements, removeMeasurement, jumpToMeasurement, updateMeasurementLabel } = useMeasurements();
-  const { patients, resetStore, setLayout, layout } = useViewerStore();
+  const { patients, resetStore, setLayout, layout } = useViewerStore(useShallow(state => ({
+    patients: state.patients,
+    resetStore: state.resetStore,
+    setLayout: state.setLayout,
+    layout: state.layout
+  })));
   const { t, language, setLanguage } = useLanguageStore();
   const [isInit, setIsInit] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);

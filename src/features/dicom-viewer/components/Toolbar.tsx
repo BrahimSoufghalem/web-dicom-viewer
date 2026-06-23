@@ -1,7 +1,8 @@
 import { getRenderingEngine, utilities, CONSTANTS } from '@cornerstonejs/core';
 import { useViewerStore } from '../../../store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useLanguageStore } from '../../../store/useLanguageStore';
-import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Eraser, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info } from 'lucide-react';
+import { SunMedium, ArrowRightLeft, Square, CircleDashed, Droplet, Hexagon, Play, Pause, ScanSearch, Hand, Compass, Crosshair, SunMoon, Undo2, Gauge, Palette, ChevronDown, Info, Brush } from 'lucide-react';
 import { getMprIds } from '../utils/mprSetup';
 import { useState } from 'react';
 import { DicomTagsModal } from './DicomTagsModal';
@@ -17,8 +18,25 @@ export function Toolbar() {
     playbackSpeed,
     setPlaybackSpeed,
     isInverted,
-    setIsInverted
-  } = useViewerStore();
+    setIsInverted,
+    isSegmentationPanelOpen,
+    setIsSegmentationPanelOpen
+  } = useViewerStore(useShallow(state => ({
+    activeTool: state.activeTool,
+    setActiveTool: state.setActiveTool,
+    panels: state.panels,
+    activePanelId: state.activePanelId,
+    setPanelPlaying: state.setPanelPlaying,
+    setPanelMprMode: state.setPanelMprMode,
+    setPanel3DMode: state.setPanel3DMode,
+    seriesList: state.seriesList,
+    playbackSpeed: state.playbackSpeed,
+    setPlaybackSpeed: state.setPlaybackSpeed,
+    isInverted: state.isInverted,
+    setIsInverted: state.setIsInverted,
+    isSegmentationPanelOpen: state.isSegmentationPanelOpen,
+    setIsSegmentationPanelOpen: state.setIsSegmentationPanelOpen
+  })));
   
   const { t } = useLanguageStore();
   const [showPresets, setShowPresets] = useState(false);
@@ -39,78 +57,52 @@ export function Toolbar() {
 
   const engineId = `engine-${activePanelId}`;
 
-  const handleReset = () => {
+  const forEachActiveViewport = (action: (viewport: any) => void, include3D: boolean = false) => {
     if (!activePanelId) return;
     const renderingEngine = getRenderingEngine(engineId);
-    if (!renderingEngine) return;
-    
-    if (is3DMode) {
-      const engine3dId = `engine-${activePanelId}`;
-      const engine3d = getRenderingEngine(engine3dId);
+    if (!renderingEngine && !is3DMode) return;
+
+    if (is3DMode && include3D) {
+      const engine3d = getRenderingEngine(`engine-${activePanelId}`);
       if (engine3d) {
         const vp = engine3d.getViewport(`VOLUME_3D_${activePanelId}`) as any;
-        if (vp) { vp.resetCamera(); vp.resetProperties(); vp.render(); }
+        if (vp) action(vp);
       }
     } else if (isMprMode) {
       const { viewportIds } = getMprIds(activePanelId);
-      if (mprIsLinked) {
+      if (mprIsLinked && renderingEngine) {
         viewportIds.forEach(id => {
            const vp = renderingEngine.getViewport(id) as any;
-           if (vp) { vp.resetCamera(); vp.resetProperties(); vp.render(); }
+           if (vp) action(vp);
         });
-      } else {
+      } else if (renderingEngine) {
          const vp = renderingEngine.getViewport(mprActiveViewport) as any;
-         if (vp) { vp.resetCamera(); vp.resetProperties(); vp.render(); }
+         if (vp) action(vp);
       }
-    } else {
+    } else if (renderingEngine) {
       const VIEWPORT_ID = `STACK_VIEWPORT_${activePanelId}`;
       const viewport = renderingEngine.getViewport(VIEWPORT_ID) as any;
-      if (viewport) {
-        viewport.resetCamera();
-        viewport.resetProperties();
-        viewport.render();
-      }
+      if (viewport) action(viewport);
     }
+  };
+
+  const handleReset = () => {
+    forEachActiveViewport((vp) => {
+      vp.resetCamera();
+      vp.resetProperties();
+      vp.render();
+    }, true);
     setIsInverted(false);
   };
 
   const handleInvert = () => {
-    if (!activePanelId) return;
-    const renderingEngine = getRenderingEngine(engineId);
-    if (!renderingEngine) return;
-    
     let newInvertState = !isInverted;
-    if (isMprMode) {
-      const { viewportIds } = getMprIds(activePanelId);
-      if (mprIsLinked) {
-        viewportIds.forEach(id => {
-           const vp = renderingEngine.getViewport(id) as any;
-           if (vp) {
-              const properties = vp.getProperties() || {};
-              newInvertState = !properties.invert;
-              vp.setProperties({ invert: newInvertState });
-              vp.render();
-           }
-        });
-      } else {
-         const vp = renderingEngine.getViewport(mprActiveViewport) as any;
-         if (vp) {
-            const properties = vp.getProperties() || {};
-            newInvertState = !properties.invert;
-            vp.setProperties({ invert: newInvertState });
-            vp.render();
-         }
-      }
-    } else {
-      const VIEWPORT_ID = `STACK_VIEWPORT_${activePanelId}`;
-      const viewport = renderingEngine.getViewport(VIEWPORT_ID) as any;
-      if (viewport) {
-        const properties = viewport.getProperties() || {};
-        newInvertState = !properties.invert;
-        viewport.setProperties({ invert: newInvertState });
-        viewport.render();
-      }
-    }
+    forEachActiveViewport((vp) => {
+      const properties = vp.getProperties() || {};
+      newInvertState = !properties.invert;
+      vp.setProperties({ invert: newInvertState });
+      vp.render();
+    });
     setIsInverted(newInvertState);
   };
 
@@ -119,33 +111,15 @@ export function Toolbar() {
   };
 
   const applyWindowPreset = (value: string) => {
-    if (!activePanelId || !value) return;
+    if (!value) return;
     const [ww, wc] = value.split(',').map(Number);
     const lower = wc - ww / 2;
     const upper = wc + ww / 2;
 
-    const renderingEngine = getRenderingEngine(engineId);
-    if (!renderingEngine) return;
-
-    if (isMprMode) {
-      const { viewportIds } = getMprIds(activePanelId);
-      if (mprIsLinked) {
-        viewportIds.forEach(id => {
-           const vp = renderingEngine.getViewport(id) as any;
-           if (vp) { vp.setProperties({ voiRange: { lower, upper } }); vp.render(); }
-        });
-      } else {
-         const vp = renderingEngine.getViewport(mprActiveViewport) as any;
-         if (vp) { vp.setProperties({ voiRange: { lower, upper } }); vp.render(); }
-      }
-    } else {
-      const VIEWPORT_ID = `STACK_VIEWPORT_${activePanelId}`;
-      const viewport = renderingEngine.getViewport(VIEWPORT_ID) as any;
-      if (viewport) {
-        viewport.setProperties({ voiRange: { lower, upper } });
-        viewport.render();
-      }
-    }
+    forEachActiveViewport((vp) => {
+      vp.setProperties({ voiRange: { lower, upper } });
+      vp.render();
+    });
   };
 
   const apply3DPreset = (presetName: string) => {
@@ -243,13 +217,16 @@ export function Toolbar() {
           <Droplet size={18} />
           <span className="tooltip">{t('toolbar.probe')}</span>
         </button>
+      </div>
+
+      <div className="tool-group" style={{ opacity: activePanelId ? 1 : 0.5, pointerEvents: activePanelId ? 'auto' : 'none' }}>
         <button 
-          className={`tool-btn ${activeTool === 'Eraser' ? 'active' : ''}`} 
-          onClick={() => handleToolClick('Eraser')}
-          style={activeTool === 'Eraser' ? { color: '#ef4444', background: 'rgba(239,68,68,0.15)' } : {}}
+          className={`tool-btn ${isSegmentationPanelOpen ? 'active' : ''}`} 
+          onClick={() => setIsSegmentationPanelOpen(!isSegmentationPanelOpen)}
+          style={isSegmentationPanelOpen ? { color: '#ec4899', background: 'rgba(236,72,153,0.15)' } : {}}
         >
-          <Eraser size={18} />
-          <span className="tooltip">{t('toolbar.eraser')}</span>
+          <Brush size={18} />
+          <span className="tooltip">Segmentation</span>
         </button>
       </div>
 

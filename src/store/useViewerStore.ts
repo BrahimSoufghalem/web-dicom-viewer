@@ -57,14 +57,17 @@ interface ViewerState {
   activePanelId: string;
   
   activeTool: string;
+  brushSize: number;
   playbackSpeed: number;
   isInverted: boolean; // Applies to active panel or linked mpr
-  
+  isSegmentationPanelOpen: boolean;
   
   // Actions
   setActiveTool: (toolName: string) => void;
+  setBrushSize: (size: number) => void;
   setPlaybackSpeed: (speed: number) => void;
   setIsInverted: (inverted: boolean) => void;
+  setIsSegmentationPanelOpen: (isOpen: boolean) => void;
   // Panel Actions
   setLayout: (layout: GridLayout) => void;
   setActivePanelId: (panelId: string) => void;
@@ -106,12 +109,16 @@ export const useViewerStore = create<ViewerState>((set) => ({
   activePanelId: 'panel-1',
   
   activeTool: 'Wwwc',
+  brushSize: 10,
   playbackSpeed: 15,
   isInverted: false,
+  isSegmentationPanelOpen: false,
   
   setActiveTool: (tool) => set({ activeTool: tool }),
+  setBrushSize: (size) => set({ brushSize: size }),
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
   setIsInverted: (inverted) => set({ isInverted: inverted }),
+  setIsSegmentationPanelOpen: (isOpen) => set({ isSegmentationPanelOpen: isOpen }),
   
   setLayout: (layout) => set((state) => {
     // Keep existing panels if they exist, pad with new ones

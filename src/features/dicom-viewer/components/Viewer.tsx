@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import { useCornerstone } from '../hooks/useCornerstone';
 import { useDicomTools } from '../hooks/useDicomTools';
 import { useViewerStore } from '../../../store/useViewerStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { Maximize2, ShieldAlert } from 'lucide-react';
 import { Enums, getRenderingEngine } from '@cornerstonejs/core';
@@ -23,7 +24,13 @@ export function Viewer({ panelId }: ViewerProps) {
     setPanelImageIndex,
     playbackSpeed,
     activePanelId
-  } = useViewerStore();
+  } = useViewerStore(useShallow(state => ({
+    seriesList: state.seriesList,
+    panels: state.panels,
+    setPanelImageIndex: state.setPanelImageIndex,
+    playbackSpeed: state.playbackSpeed,
+    activePanelId: state.activePanelId
+  })));
   const { t } = useLanguageStore();
   
   const panel = panels.find(p => p.id === panelId);
