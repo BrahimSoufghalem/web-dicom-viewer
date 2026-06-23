@@ -6,7 +6,7 @@ A high-performance, fully client-side medical imaging platform built with React 
 
 ## Screenshot
 
-![Web DICOM Viewer — full viewer interface with CT scans, MPR planes, 3D volume rendering, measurements, and segmentation](IMG/screenshot.png)
+![Web DICOM Viewer — full viewer interface with CT scans, MPR planes, 3D volume rendering, measurements, and segmentation](./img/screenshot.png)
 
 ---
 
@@ -112,33 +112,33 @@ Each viewport is independent: it can display a different series, a different mod
 
 ```mermaid
 flowchart TD
-    subgraph Input
+    subgraph InputLayer [Input]
         User([User])
-        DragDrop["Drag & Drop\nFiles / Folder"]
+        DragDrop["Drag and Drop<br>Files / Folder"]
     end
 
-    subgraph Parsing ["Data Layer"]
-        Parser["DICOM Parser\n(dicom-parser)"]
-        Workers["Web Workers\n(Pixel Decoding)"]
+    subgraph DataLayer [Data Layer]
+        Parser["DICOM Parser<br>(dicom-parser)"]
+        Workers["Web Workers<br>(Pixel Decoding)"]
     end
 
-    subgraph State ["State Management"]
-        Zustand[("Zustand Store\nPatients · Series · Viewports\nMeasurements · Segments")]
+    subgraph StateLayer [State Management]
+        Zustand[("Zustand Store<br>Patients, Series, Viewports<br>Measurements, Segments")]
     end
 
-    subgraph UI ["UI Layer"]
-        Sidebar["Series Sidebar\n(Patient / Study / Series tree)"]
-        LayoutMgr["Layout Manager\n(1×1 · 1×2 · 1+2 · 2×2)"]
-        Toolbar["Toolbar\n(Tool selection · Presets · Playback)"]
-        SegPanel["Segmentation Panel\n(Segments · Brush · Eraser)"]
-        MeasSidebar["Measurements Sidebar\n(Annotations · Slice jump)"]
+    subgraph UILayer [UI Layer]
+        Sidebar["Series Sidebar<br>(Patient / Study / Series tree)"]
+        LayoutMgr["Layout Manager<br>(1x1, 1x2, 1+2, 2x2)"]
+        Toolbar["Toolbar<br>(Tool selection, Presets, Playback)"]
+        SegPanel["Segmentation Panel<br>(Segments, Brush, Eraser)"]
+        MeasSidebar["Measurements Sidebar<br>(Annotations, Slice jump)"]
     end
 
-    subgraph Rendering ["Rendering Engine"]
-        CS3D{"Cornerstone3D\nEngine"}
-        Viewer2D["2D Viewports\n(Stack Images)"]
-        ViewerMPR["MPR Viewports\n(Volume · Axial · Sagittal · Coronal)"]
-        Viewer3D["3D Volume Renderer\n(WebGL · VTK)"]
+    subgraph RenderingLayer [Rendering Engine]
+        CS3D{"Cornerstone3D<br>Engine"}
+        Viewer2D["2D Viewports<br>(Stack Images)"]
+        ViewerMPR["MPR Viewports<br>(Volume, Axial, Sagittal, Coronal)"]
+        Viewer3D["3D Volume Renderer<br>(WebGL, VTK)"]
         WebGL[("WebGL Canvas")]
     end
 
