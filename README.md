@@ -194,5 +194,5 @@ npm run build
 
 ---
 
-*Note on Authorship and Collaboration:*
-The codebase for this project was developed with the assistance of Artificial Intelligence. However, the overarching system architecture, component methodologies, and critical execution workflows were meticulously planned, directed, and authored by the human developer. Furthermore, direct human intervention and custom code authoring were required to resolve deep technical challenges—such as bypassing the 2D Probe Tool limitations and engineering polling systems to mitigate rendering engine race conditions—ensuring the application meets the highest standards of performance and reliability. The AI served as a highly capable pair-programmer, efficiently translating this complex engineering vision into reality.
+*Development Note:*
+ This project was developed with AI-assisted programming tools. The system architecture, feature design, engineering decisions, debugging, and validation were conceived and directed by the author. AI was used as a productivity tool for code generation and refactoring, while all major technical decisions and integration work remained under human supervision.
