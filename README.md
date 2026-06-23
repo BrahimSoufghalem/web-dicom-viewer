@@ -6,7 +6,7 @@ A high-performance, fully client-side medical imaging platform built with React 
 
 ## Screenshot
 
-![Web DICOM Viewer — full viewer interface with CT scans, MPR planes, 3D volume rendering, measurements, and segmentation](./img/screenshot.png)
+![Web DICOM Viewer — full viewer interface with CT scans, MPR planes, 3D volume rendering, measurements, and segmentation](./IMG/Screenshot.png)
 
 ---
 
